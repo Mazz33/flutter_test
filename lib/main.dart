@@ -1,18 +1,21 @@
 import "package:flutter/material.dart";
 
+var userGoals = new Map();
+
 void main()
 {
-	addGoal(testGoal);
+
 	runApp(MyApp());
 }
 
-var userGoals = new Map();
-Goal testGoal = new Goal("Test Goal", "This is my test goal case!!");
+
+Goal testGoal = new Goal("Test", "This is my test goal case!!");
 
 class MyApp extends StatelessWidget
 {
 	@override
 	Widget build(BuildContext context) {
+		addGoal(testGoal);
     return MaterialApp(
 			title: "To-do list",
 			home: HomePage(
@@ -86,33 +89,60 @@ class Goal //goals added in the To-do list
 	void makeIdle() { this.status = false; }
 }
 
-class GoalViewer extends StatelessWidget
+class GoalViewer extends StatefulWidget
 {
 	Goal currentGoal;
 	GoalViewer(this.currentGoal);
 	@override
+	State<StatefulWidget> createState() { return _GoalViewerState(currentGoal); }
+}
+
+class _GoalViewerState extends State<GoalViewer>
+{
+	Goal currentGoal;
+	_GoalViewerState(this.currentGoal);
+
+	@override
 	Widget build(BuildContext context) {
 		return ListTile(
-			leading: Builder(
-				builder: (BuildContext context) {
-					return IconButton(
-						icon: const Icon(Icons.check_circle_outline_rounded),
-						onPressed: () => markGoalActive(currentGoal),
-						color: Colors.green,
-					);
-				}
+			leading: Icon(
+				currentGoal.finished ? Icons.check_box : Icons.cancel,
+				color: currentGoal.finished ? Colors.green: Colors.red,
 			),
+			// leading: IconButton(
+			// 	icon: currentGoal.finished ? const Icon(Icons.check) : Icon(Icons.cancel),
+			// 	color: currentGoal.finished ? Colors.green : Colors.red,
+			// 	onPressed: () => {},
+			// ),
 			title: Text(currentGoal.goalName),
 			subtitle: Text(currentGoal.goalDesc),
-			enabled: currentGoal.status,
-			dense: true,
-			onLongPress: () => markGoalComplete(currentGoal),
-			onTap: () => markGoalActive(currentGoal),
+			isThreeLine: true,
+			enabled: true,
+			dense: false,
+			tileColor: Colors.white12,
+			selectedTileColor: Colors.blueAccent,
+			selected: currentGoal.status,
+			onLongPress: () => {
+				setState(() { currentGoal.finished = !currentGoal.finished; })
+			},
+			onTap: () => {
+				setState(() { currentGoal.status = !currentGoal.status; })
+			},
+			trailing: IconButton(
+				icon: Icon(Icons.menu),
+				color: Colors.blueGrey,
+				onPressed: () => { PopupMenuButton<> },
+			),
 		);
   }
 }
 
-
+Text isActive(Goal g)
+{
+	if(g.status)
+		return Text("Goal Active!");
+	return Text("Goal Inactive");
+}
 
 void addGoal(Goal newGoal) //adds new new goal
 {
@@ -122,14 +152,18 @@ void addGoal(Goal newGoal) //adds new new goal
 		userGoals[name] = newGoal;
 }
 
-
+void markGoalIncomplete(Goal unfinishedGoal)
+{
+	String name = unfinishedGoal.name;
+	if(userGoals.containsKey(name)) //safecheck
+		userGoals[name].markIncomplete();
+}
 
 void markGoalComplete(Goal finishedGoal)
 {
 	String name = finishedGoal.name;
-	if(!userGoals.containsKey(name))
-		return; //safecheck
-	userGoals[name].markComplete();
+	if(userGoals.containsKey(name)) //safecheck
+		userGoals[name].markComplete();
 }
 
 void markGoalActive(Goal targetGoal)
@@ -146,26 +180,36 @@ void removeGoal(Goal targetGoal)
 		userGoals.remove(name);
 }
 
-class ViewGoals extends StatelessWidget
+class ViewGoals extends StatefulWidget
+{
+	@override
+	State<StatefulWidget> createState() { return _ViewGoalsState(); }
+}
+
+class _ViewGoalsState extends State<ViewGoals>
 {
 	@override
 	Widget build(BuildContext context) {
+		var keys = userGoals.keys.toList();
     return Scaffold(
 			appBar:	AppBar(
 				title: Text("My Goals"),
 				automaticallyImplyLeading: true,
 				centerTitle: true,
+					actions: <Widget>[
+						IconButton(icon: Icon(Icons.add), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage(title: "Test")))),
+					],
 				leading: IconButton(icon:Icon(Icons.arrow_back),
 					onPressed: () => Navigator.pop(context, false),
 				),
+
 			),
 			body:
-				ListView(
-					children: <Widget>[
-						Card(
-							child: GoalViewer(userGoals[0]),
-						)
-					],
+				ListView.builder(
+					itemCount: keys.length,
+						itemBuilder: (BuildContext context, int index) {
+							return GoalViewer(userGoals[keys[index]]);
+						}
 				)
 		);
   }
